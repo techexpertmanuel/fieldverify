@@ -1,0 +1,11 @@
+{
+  "name": "fieldverify",
+  "private": true,
+  "scripts": {
+    "install:all": "npm --prefix backend install",
+    "dev": "npm --prefix backend run dev",
+    "build": "npm --prefix backend run build",
+    "start": "npm --prefix backend run start",
+    "db:migrate": "npm --prefix backend run db:migrate"
+  }
+}

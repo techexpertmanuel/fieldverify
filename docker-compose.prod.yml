@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: fieldverify
+      POSTGRES_USER: fieldverify
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fieldverify -d fieldverify"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+      - ./backups:/app/backups
+    ports:
+      - "4000:4000"
+
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backups:/backups
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "while true; do
+      pg_dump "$DATABASE_URL" | gzip > /backups/fieldverify-$$(date -u +%Y%m%dT%H%M%SZ).sql.gz;
+      find /backups -type f -name '*.sql.gz' -mtime +14 -delete;
+      sleep 86400;
+      done"
+
+volumes:
+  postgres_data:
